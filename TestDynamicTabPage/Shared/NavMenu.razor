@@ -1,0 +1,22 @@
+﻿@using Newtonsoft.Json.Linq
+@inject OpenedPagesService openedPages;
+@inject CurrentPageService currentPage;
+
+<div class="sidebar @StateCssClass">
+<DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
+    <Nodes>
+            <DxTreeViewNode Text="Overview" @onclick="@(() => CrearPagina("Index", "Index"))"></DxTreeViewNode>
+            <DxTreeViewNode Text="Grid" @onclick="@(() => CrearPagina("Grid", "Grid"))"></DxTreeViewNode>
+    </Nodes>
+</DxTreeView>
+</div>
+
+@code {
+    [Parameter] public string? StateCssClass { get; set; }    
+   
+    private void CrearPagina(string nombreDeLaPagina, string nombreDelComponente)
+    {
+        currentPage.CrearNuevaPagina(nombreDeLaPagina, $"TestDynamicTabPage.Pages.{nombreDelComponente}");
+        openedPages.agregarPaginaNueva(currentPage.GetPagina());
+    }    
+}

@@ -1,0 +1,9 @@
+﻿::deep .cerrar-ventana {
+	float: right;
+	margin-left: 11px;
+	font-size: 8px;
+}
+
+::deep .cerrar-ventana:hover {
+	background-color: gray;
+}

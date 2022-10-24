@@ -1,0 +1,112 @@
+﻿@using Newtonsoft.Json
+@using System.Diagnostics
+@inject OpenedPagesService openedPages;
+@inject CurrentPageService currentPage;
+
+
+<DxGridLayout>
+    <Rows>
+        <DxGridLayoutRow Areas="header" Height="Auto"></DxGridLayoutRow>
+        <DxGridLayoutRow Areas="content" Height="95%"></DxGridLayoutRow>
+    </Rows>
+    <Columns>
+        <DxGridLayoutColumn />
+    </Columns>
+    <Items>
+        <DxGridLayoutItem Area="header">
+            <Template>
+                <DxTabs ScrollMode=@TabsScrollMode.Auto>
+                    @foreach (Pagina pagina in openedPages.Paginas)
+                    {
+                        <DxTab @key="@pagina.Numero">
+                            <div tabindex="0" @onfocus="@((FocusEventArgs args) =>  cambiarPestaña(pagina))" @onkeypress="NavegacionPorTeclado">
+                                <a role="tab" class="nav-link @(currentPage.Numero == pagina.Numero ? "active": "")" @onclick="() => cambiarPestaña(pagina)">
+                                    @pagina.Nombre
+                                    <span class="cerrar-ventana oi oi-x" style="@("display:" + (pagina.Numero == 1 ? "none": "inherit"))" @onclick="() => CerrarVentana(pagina)" @onclick:stopPropagation="true"></span>
+                                </a>
+                            </div>
+                        </DxTab>
+                    }
+                </DxTabs>
+            </Template>
+        </DxGridLayoutItem>
+        <DxGridLayoutItem Area="content" CssClass="content-content">
+            <Template>
+                @foreach (var pagina in openedPages.Paginas)
+                {
+                    <div style="@(pagina.Numero != currentPage.Numero ? "display: none;" : "")" @key="@pagina.Numero">
+                        <DynamicComponent Type="pagina.Tipo"/>
+                    </div>
+                }
+            </Template>
+        </DxGridLayoutItem>
+    </Items>
+</DxGridLayout>
+    
+
+<DxPopup HeaderText="Precaución"
+         @bind-Visible="@PopupVisible"
+         BodyText="¿Guardar cambios?"
+         ShowFooter="true">
+    <FooterContentTemplate Context="Context">
+        <DxButton RenderStyle="ButtonRenderStyle.Primary" Text="Si" Click="@(() => 
+        {            
+            openedPages.Estado[255]["GuardarAntes"] = true;
+            openedPages.cerrarPagina(paginaAEliminar);
+            PopupVisible = false;
+            currentPage.cambiarVentana(openedPages.Paginas.Last());
+        })" />
+        <DxButton RenderStyle="ButtonRenderStyle.Secondary" Text="No" Click="@(() => 
+        {                        
+            openedPages.cerrarPagina(paginaAEliminar);
+            PopupVisible = false;
+            currentPage.cambiarVentana(openedPages.Paginas.Last());            
+        })" />
+    </FooterContentTemplate>
+</DxPopup>
+
+
+@code {
+    private bool PopupVisible { get; set; } = false;
+    private Pagina paginaAEliminar { get; set; }
+
+    protected override void OnInitialized()
+    {
+        currentPage.OnChange += () => StateHasChanged();
+        base.OnInitialized();
+    }
+
+    private void cambiarPestaña(Pagina pagina)
+    {
+        currentPage.cambiarVentana(pagina);
+    }
+
+    private void CerrarVentana(Pagina pagina)
+    {        
+        if (openedPages.Estado[pagina.Numero].ContainsKey("Guardar"))
+        {
+            if ((bool)openedPages.Estado[pagina.Numero]["Guardar"])
+            {
+                if (JsonConvert.SerializeObject(openedPages.Estado[pagina.Numero]["ObjetoSeleccionado"]) != JsonConvert.SerializeObject(openedPages.Estado[pagina.Numero]["ObjetoInicial"]))
+                {
+                    paginaAEliminar = pagina;
+                    PopupVisible = true;
+                }                                
+            } 
+            openedPages.Estado.Add(255, new Dictionary<string, object>());
+            openedPages.Estado[255]["GuardarAntes"] = false;
+            
+        }
+        
+        if (!PopupVisible)
+        {            
+            openedPages.cerrarPagina(pagina);
+            currentPage.cambiarVentana(openedPages.Paginas.Last());
+        }
+    }    
+
+    public void NavegacionPorTeclado(KeyboardEventArgs e)
+    {
+        Debug.WriteLine(e.Key);        
+    }
+}
